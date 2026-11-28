@@ -7,6 +7,22 @@ import (
 	"github.com/nikimonax/go-smart-meets/internal/server/global"
 )
 
+var _ fmt.Stringer = (*ListenConfig)(nil)
+
+type ListenConfig struct {
+	Host string `validate:"required,hostname_rfc1123|ip"`
+	Port int    `validate:"required,port"`
+}
+
+// String implements [fmt.Stringer].
+func (cfg *ListenConfig) String() string {
+	return fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+}
+
+type HTTPConfig struct {
+	Listen ListenConfig
+}
+
 type DatabaseConfig struct {
 	Host    string `validate:"required,hostname_rfc1123|ip"`
 	Port    int    `validate:"required,port"`
@@ -37,6 +53,7 @@ func (cfg *DatabaseConfig) URL() *url.URL {
 }
 
 type Config struct {
+	HTTP     HTTPConfig
 	Database DatabaseConfig
 }
 

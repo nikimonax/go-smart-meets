@@ -8,12 +8,16 @@ import (
 	"github.com/nikimonax/go-smart-meets/internal/server/module"
 )
 
-func New(cfg *config.Config) fx.App {
+func New(cfg *config.Config) *fx.App {
 	// TODO: setup logging
-	return *fx.New(
+
+	return fx.New(
 		fx.Supply(cfg),
+		module.CoreModule(),
 		module.DatabaseModule(),
 		module.QueueModule(),
+		module.QueueUIModule(),
+		module.HTTPModule(),
 		fx.Invoke(background.RegisterWorkers),
 	)
 }

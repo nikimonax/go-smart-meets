@@ -1,6 +1,8 @@
 package module
 
 import (
+	"context"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -31,6 +33,7 @@ func provideRiverClient(
 	workers *river.Workers,
 ) (*river.Client[pgx.Tx], error) {
 	return river.NewClient(riverpgxv5.New(pool), &river.Config{
+		// TODO: setup logger
 		Queues: map[string]river.QueueConfig{
 			river.QueueDefault: {MaxWorkers: 20},
 		},
@@ -40,11 +43,13 @@ func provideRiverClient(
 
 func registerRiverClientLifecycle(
 	lc fx.Lifecycle,
+	runCtx runtimeContext,
 	client *river.Client[pgx.Tx],
 ) {
 	lc.Append(fx.Hook{
-		// FIX: required runtime ctx, not startup
-		OnStart: client.Start,
-		OnStop:  client.Stop,
+		OnStart: func(_ context.Context) error {
+			return client.Start(runCtx)
+		},
+		OnStop: client.Stop,
 	})
 }
