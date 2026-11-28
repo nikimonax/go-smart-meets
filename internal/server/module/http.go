@@ -3,10 +3,13 @@ package module
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 
 	"go.uber.org/fx"
+
+	sloghttp "github.com/samber/slog-http"
 
 	"github.com/nikimonax/go-smart-meets/internal/server/config"
 )
@@ -17,7 +20,11 @@ func HTTPModule() fx.Option {
 		"http",
 		fx.Provide(
 			provideHTTPMux,
+		),
+		fx.Provide(
+			provideHTTPHandler,
 			provideHTTPServer,
+			fx.Private,
 		),
 		fx.Invoke(
 			registerHTTPServerLifecycle,
@@ -29,8 +36,26 @@ func provideHTTPMux() *http.ServeMux {
 	return http.NewServeMux()
 }
 
-func provideHTTPServer(mux *http.ServeMux) *http.Server {
-	return &http.Server{Handler: mux}
+func provideHTTPHandler(
+	mux *http.ServeMux,
+	logger *slog.Logger,
+) http.Handler {
+	logger = logger.With("module", "http")
+
+	config := sloghttp.Config{
+		DefaultLevel:     slog.LevelInfo,
+		ClientErrorLevel: slog.LevelWarn,
+		ServerErrorLevel: slog.LevelError,
+	}
+
+	handler := sloghttp.Recovery(mux)
+	handler = sloghttp.NewWithConfig(logger, config)(handler)
+
+	return handler
+}
+
+func provideHTTPServer(handler http.Handler) *http.Server {
+	return &http.Server{Handler: handler}
 }
 
 func registerHTTPServerLifecycle(

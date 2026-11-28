@@ -24,6 +24,7 @@ func registerRiverUI(
 	runCtx runtimeContext,
 	mux *http.ServeMux,
 	client *river.Client[pgx.Tx],
+	logger *slog.Logger,
 ) error {
 	endpoints := riverui.NewEndpoints(client, nil)
 
@@ -31,8 +32,11 @@ func registerRiverUI(
 
 	opts := &riverui.HandlerOpts{
 		Endpoints: endpoints,
-		Logger:    slog.Default(),
-		Prefix:    prefix,
+		Logger: logger.With(
+			"module", "queue-ui",
+			"package", "riverui",
+		),
+		Prefix: prefix,
 	}
 
 	handler, err := riverui.NewHandler(opts)

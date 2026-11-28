@@ -15,7 +15,11 @@ import (
 //go:embed migrations/*.sql
 var migrations embed.FS
 
-func Migrate(ctx context.Context, pool *pgxpool.Pool) (err error) {
+func Migrate(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	opts ...goose.ProviderOption,
+) (err error) {
 	db := stdlib.OpenDBFromPool(pool)
 	defer func() { err = errors.Join(err, db.Close()) }()
 
@@ -24,7 +28,13 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) (err error) {
 		return fmt.Errorf("sub migrations fs: %w", err)
 	}
 
-	provider, err := goose.NewProvider(goose.DialectPostgres, db, migrationsFS)
+	provider, err := goose.NewProvider(
+		goose.DialectPostgres,
+		db,
+		migrationsFS,
+		opts...,
+	)
+
 	if err != nil {
 		return fmt.Errorf("create goose provider: %w", err)
 	}

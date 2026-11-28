@@ -2,12 +2,15 @@ package module
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"go.uber.org/fx"
+
+	"github.com/nikimonax/go-smart-meets/internal/server/background"
 )
 
 // depends on database module
@@ -19,6 +22,7 @@ func QueueModule() fx.Option {
 			provideRiverClient,
 		),
 		fx.Invoke(
+			background.RegisterWorkers,
 			registerRiverClientLifecycle,
 		),
 	)
@@ -31,12 +35,16 @@ func provideRiverWorkers() *river.Workers {
 func provideRiverClient(
 	pool *pgxpool.Pool,
 	workers *river.Workers,
+	logger *slog.Logger,
 ) (*river.Client[pgx.Tx], error) {
 	return river.NewClient(riverpgxv5.New(pool), &river.Config{
-		// TODO: setup logger
 		Queues: map[string]river.QueueConfig{
 			river.QueueDefault: {MaxWorkers: 20},
 		},
+		Logger: logger.With(
+			"module", "queue",
+			"package", "river",
+		),
 		Workers: workers,
 	})
 }
